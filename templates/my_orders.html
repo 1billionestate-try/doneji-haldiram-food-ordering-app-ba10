@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}My orders{% endblock %}
+{% block content %}
+<div class="ds-narrow">
+  <header class="page-head">
+    <p class="eyebrow">Your history</p>
+    <h1 class="h4 mb-0">My orders</h1>
+  </header>
+
+    <table class="table align-middle">
+      <thead><tr><th>Order</th><th>Items</th><th class="text-end">Total</th><th>Status</th><th>Payment</th></tr></thead>
+      <tbody>
+        {% for o in orders %}
+          <tr>
+            <td class="text-muted">#{{ o.id }}</td>
+            <td>{{ o.summary }}
+              <div class="text-muted small">
+                {% if o.fulfillment == 'delivery' %}Delivery &middot; {{ o.address }}
+                {% elif o.fulfillment == 'table' %}Table {{ o.table_no }}
+                {% else %}Pickup &middot; {{ o.pickup_time }}{% endif %}
+              </div>
+            </td>
+            <td class="text-end">&#8377;{{ o.total }}</td>
+            <td>
+              {% if o.status == 'ready' %}
+                <span class="badge bg-success">Ready</span>
+              {% elif o.status == 'preparing' %}
+                <span class="badge bg-info text-dark">Preparing</span>
+              {% else %}
+                <span class="badge bg-secondary">Placed</span>
+              {% endif %}
+            </td>
+            <td>
+              {# The payment lives on each order's own pay page; this cell only
+                 reports where things stand. #}
+              {% set p = paid.get(o.id) %}
+              {% if p and p.status == 'verified' %}
+                <span class="badge bg-success">Paid &middot; {{ 'UPI' if p.claimed_ref else 'cash' }}</span>
+              {% elif p and p.status == 'claimed' %}
+                <a class="badge bg-info text-dark text-decoration-none" href="/orders/{{ o.id }}/pay">Checking&hellip;</a>
+              {% elif o.pay_method == 'upi' %}
+                <a class="btn btn-sm btn-outline-primary" href="/orders/{{ o.id }}/pay">Pay now</a>
+              {% else %}
+                {# Cash is paid in person (pay_method is always 'counter' when
+                   UPI is off); the link only lets them change their mind. #}
+                <span class="badge bg-secondary">Cash</span>
+                <a class="small" href="/orders/{{ o.id }}/pay">change</a>
+              {% endif %}
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5" class="text-muted">No orders yet — the menu is waiting.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+</div>
+{% endblock %}

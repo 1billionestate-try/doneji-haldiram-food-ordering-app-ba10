@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}Menu{% endblock %}
+{% block content %}
+<header class="ds-hero">
+  <p class="eyebrow">Haldiram · since 1937</p>
+  <h1 class="h4 mb-1">Order Haldiram favourites</h1>
+  <p class="sub mb-0">Namkeen, sweets, thalis and snacks — delivered, picked up or served at your table.</p>
+</header>
+
+    <div class="mb-3">
+      <a class="btn btn-sm {{ 'btn-primary' if not active else 'btn-outline-secondary' }}" href="/">All</a>
+      {% for c in categories %}
+        <a class="btn btn-sm {{ 'btn-primary' if active == c.category else 'btn-outline-secondary' }}"
+           href="/?category={{ c.category }}">{{ c.category }}</a>
+      {% endfor %}
+    </div>
+
+    <div class="row g-4">
+      <div class="col-lg-8">
+        <div class="row g-4">
+          {% for i in items %}
+            <div class="col-md-6" id="item-{{ i.id }}">
+              <div class="card ds-lift h-100">
+                {# Three rungs, in order of trust: the owner's own pasted
+                   photo; the platform's VERIFIED photo for a dish everyone
+                   recognises (photos.py); the neutral initial tile. Never a
+                   random stock photo — picsum's catalogue once put Times
+                   Square on a Masala Dosa card, and on a food menu an
+                   unrelated photo is worse than none. #}
+                {% if i.image_url %}
+                  <img class="ds-photo" src="{{ i.image_url }}" alt="{{ i.name }}" loading="lazy" />
+                {% elif stock_photo is defined and stock_photo(i.name) %}
+                  <img class="ds-photo" src="{{ stock_photo(i.name) }}" alt="{{ i.name }}" loading="lazy" />
+                {% else %}
+                  <svg class="ds-photo" viewBox="0 0 640 360" aria-hidden="true">
+                    <rect width="640" height="360" fill="var(--app-accent-soft)" />
+                    <text x="320" y="180" text-anchor="middle" dominant-baseline="central"
+                          font-size="120" font-weight="700" font-family="inherit"
+                          fill="var(--app-accent)">{{ i.name[:1]|upper }}</text>
+                  </svg>
+                {% endif %}
+                <div class="card-body d-flex align-items-start justify-content-between gap-2">
+                  <div>
+                    <h2 class="h6 card-title mb-1">{{ i.name }}</h2>
+                    {% if i.description %}<p class="text-muted small mb-1">{{ i.description }}</p>{% endif %}
+                    <p class="text-muted small mb-0">{{ i.category }} · &#8377;{{ i.price }}</p>
+                  </div>
+                  {# A dish already in the cart says so beside its Add button,
+                     because on a phone the cart itself is a bar at the bottom
+                     of the screen and the page reloads at the top after Add. #}
+                  {% set in_cart = cart|selectattr('id', 'equalto', i.id)|list %}
+                  <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                    {% if in_cart %}<span class="badge ds-badge-soft">&times;{{ in_cart[0].qty }} in cart</span>{% endif %}
+                    <form method="post" action="/cart/add/{{ i.id }}" class="d-inline">
+                      <input type="hidden" name="category" value="{{ active }}" />
+                      <button class="btn btn-sm btn-primary">Add</button>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% else %}
+            <div class="col-12"><p class="text-muted">Nothing on the menu yet.</p></div>
+          {% endfor %}
+        </div>
+      </div>
+
+      {# The side panel, on a laptop. Under 992px Bootstrap would stack this
+         column UNDER every dish card — four screens down — so there it is
+         hidden and the cart bar below the grid takes over. #}
+      <div class="col-lg-4 d-none d-lg-block">
+        <div class="card card-body">
+          <h2 class="h6">Your cart</h2>
+          {% for line in cart %}
+            <p class="mb-1 d-flex justify-content-between">
+              <span>{{ line.name }} &times;{{ line.qty }}</span>
+              <span>&#8377;{{ line.line_total }}</span>
+            </p>
+          {% else %}
+            <p class="text-muted mb-1">Empty — add something from the menu.</p>
+          {% endfor %}
+          {% if cart %}
+            <hr class="my-2" />
+            <p class="d-flex justify-content-between fw-bold"><span>Total</span><span>&#8377;{{ cart_total }}</span></p>
+            <div class="d-grid gap-2">
+              <a class="btn btn-primary" href="/checkout">Go to checkout</a>
+            </div>
+            <form method="post" action="/cart/clear" class="d-grid mt-2">
+              <button class="btn btn-sm btn-outline-secondary">Clear cart</button>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {% if cart %}
+      {# Phones and tablets: the cart is a bar pinned to the bottom of the
+         screen (styled in _theme.html, laptop hides it). One tap on the bar
+         opens a sheet with the same lines and the same two doors as the
+         panel above — nothing a customer can do here that they cannot do
+         there. A <details> element: it opens and closes without any script. #}
+      <div class="ds-cart-spacer"></div>
+      <details class="ds-cart-bar" id="cart-bar">
+        <summary>
+          <span class="ds-cart-bar-handle" aria-hidden="true"></span>
+          <span class="ds-cart-bar-text">
+            {% set cart_count = cart|sum(attribute='qty') %}
+            <span class="ds-cart-bar-total">{{ cart_count }} item{{ '' if cart_count == 1 else 's' }} &middot; &#8377;{{ cart_total }}</span>
+            <span class="ds-cart-bar-names">{% for line in cart %}{{ line.name }} &times;{{ line.qty }}{% if not loop.last %}, {% endif %}{% endfor %}</span>
+            <span class="ds-cart-bar-title">Your cart</span>
+          </span>
+          <span class="btn btn-primary ds-cart-bar-open">View cart
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+          </span>
+          <span class="ds-cart-bar-close" aria-label="Close">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+          </span>
+        </summary>
+        <div class="ds-cart-sheet">
+          {% for line in cart %}
+            <p class="mb-1 d-flex justify-content-between">
+              <span>{{ line.name }} &times;{{ line.qty }}</span>
+              <span>&#8377;{{ line.line_total }}</span>
+            </p>
+          {% endfor %}
+          <hr class="my-2" />
+          <p class="d-flex justify-content-between fw-bold"><span>Total</span><span>&#8377;{{ cart_total }}</span></p>
+          <div class="d-grid gap-2">
+            <a class="btn btn-primary" href="/checkout">Go to checkout &middot; &#8377;{{ cart_total }}</a>
+          </div>
+          <form method="post" action="/cart/clear" class="d-grid mt-2">
+            <button class="btn btn-sm btn-outline-secondary">Clear cart</button>
+          </form>
+        </div>
+      </details>
+      <script>
+        (function () {
+          // Tapping the dimmed page behind the open sheet closes it. The bar
+          // works without this; it is only the gesture people expect.
+          var bar = document.getElementById('cart-bar');
+          if (!bar) return;
+          bar.addEventListener('click', function (event) {
+            if (event.target === bar && bar.open) bar.open = false;
+          });
+        })();
+      </script>
+    {% endif %}
+{% endblock %}

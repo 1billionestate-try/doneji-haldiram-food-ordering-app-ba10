@@ -1,0 +1,7 @@
+{# Flash messages. app.py calls flash(message, category) and redirects;
+   whatever was flashed shows up here, once, on the next page. #}
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for category, message in messages %}
+    <div class="alert alert-{{ category if category in ['success', 'info', 'warning', 'danger'] else 'info' }}" role="status">{{ message }}</div>
+  {% endfor %}
+{% endwith %}
